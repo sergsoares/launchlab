@@ -15,22 +15,32 @@ import (
 )
 
 type Params struct {
-	name string
+	name              string
+	dryRun            bool
+	dockerComposePath string
 }
 
 func main() {
 	var typeb string
 	var name string
 	var action string
+	var dryrun bool
+	var dockercompose string
 	flag.StringVar(&typeb, "type", "do", "Cloud that will be used")
 	flag.StringVar(&name, "name", "launchlab", "Name that will be used in Cloud Instance")
 	flag.StringVar(&action, "action", "create", "Name that will be used in Cloud Instance")
+	flag.StringVar(&dockercompose, "file", "cloudinit/examples/elasticsearch.yml", "Docker compose file to be used.")
+	flag.BoolVar(&dryrun, "dry-run", false, "Dry run command to be created.")
+
 	flag.Parse()
 	log.Debug().Msg("Args parsed")
 
 	param := Params{
-		name: name,
+		name:              name,
+		dryRun:            dryrun,
+		dockerComposePath: dockercompose,
 	}
+
 	switch typeb {
 	case "do":
 		launchDo(param)
@@ -45,13 +55,18 @@ type DigitalOceanToken struct {
 
 var configurationLocation = os.Getenv("HOME") + "/.config/doctl/config.yaml"
 
-func launchDo(param Params) {
+func loadDoClient(path string) *godo.Client {
 	token := DigitalOceanToken{}
-	f, _ := os.Open(configurationLocation)
+	f, _ := os.Open(path)
 	content, _ := ioutil.ReadAll(f)
 	yaml.Unmarshal(content, &token)
+	return godo.NewFromToken(token.AccessToken)
+}
 
-	base64Content, err := cloudinit.GetFileAsBase64(string(content))
+func launchDo(param Params) {
+	client := loadDoClient(configurationLocation)
+
+	base64Content, err := cloudinit.GetFileAsBase64(param.dockerComposePath)
 	if err != nil {
 		panic(err)
 	}
@@ -61,7 +76,6 @@ func launchDo(param Params) {
 		Raw:    base64Content,
 	}
 
-	client := godo.NewFromToken(token.AccessToken)
 	createRequest := &godo.DropletCreateRequest{
 		Name:     param.name,
 		Region:   "nyc3",
@@ -76,8 +90,11 @@ func launchDo(param Params) {
 	}
 	ctx := context.TODO()
 
-	newDroplet, _, err := client.Droplets.Create(ctx, createRequest)
+	if param.dryRun {
+		return
+	}
 
+	newDroplet, _, err := client.Droplets.Create(ctx, createRequest)
 	if err != nil {
 		fmt.Print("Error:", err)
 		os.Exit(1)
