@@ -10,3 +10,6 @@ When you need:
 ```
 launchlab -name launchlab 
 ```
+
+TODO:
+- Implements using a package for Cloudinit. 
