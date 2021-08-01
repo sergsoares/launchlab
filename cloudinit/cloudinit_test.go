@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestGenerateDockerComposeGivesMockedValues(t *testing.T) {
+func TestGenerateCloudInitGivesMockedValues(t *testing.T) {
 	f, _ := os.Open("mocked_cloud_init.yml")
 	content, _ := ioutil.ReadAll(f)
 
@@ -15,7 +15,7 @@ func TestGenerateDockerComposeGivesMockedValues(t *testing.T) {
 		Raw:    "",
 	}
 	want := string(content)
-	got := GenerateDockerCompose(dc)
+	got := GenerateCloudInit(dc)
 	if want != got {
 		t.Error("Want : ", want, "Got: ", got)
 	}

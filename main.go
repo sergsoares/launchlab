@@ -80,7 +80,7 @@ func launchDo(param Params) {
 		Name:     param.name,
 		Region:   "nyc3",
 		Size:     "s-1vcpu-1gb",
-		UserData: cloudinit.GenerateDockerCompose(dc),
+		UserData: cloudinit.GenerateCloudInit(dc),
 		SSHKeys: []godo.DropletCreateSSHKey{
 			{0, "43:7d:f6:a5:2e:15:78:4e:58:8a:f8:1a:ae:47:bf:5f"},
 		},

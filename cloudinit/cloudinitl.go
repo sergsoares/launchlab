@@ -44,8 +44,7 @@ type DockerComposeConfig struct {
 	Raw    string
 }
 
-// Todo: Change name to cloudinit
-func GenerateDockerCompose(dc DockerComposeConfig) string {
+func GenerateCloudInit(dc DockerComposeConfig) string {
 	result := fmt.Sprint(baseyaml, "\n", runcmd, `
   - echo `, dc.Base64, ` | base64 -d > /root/docker-compose.yml
   - docker-compose -f /root/docker-compose.yml up -d
