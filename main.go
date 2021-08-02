@@ -66,14 +66,14 @@ func loadDoClient(path string) *godo.Client {
 func launchDo(param Params) {
 	client := loadDoClient(configurationLocation)
 
-	base64Content, err := cloudinit.GetFileAsBase64(param.dockerComposePath)
+	CommandBase64Content, err := cloudinit.GetFileAsCommandBase64(param.dockerComposePath)
 	if err != nil {
 		panic(err)
 	}
 
 	dc := cloudinit.CloudInitConfig{
-		Base64: base64Content,
-		Raw:    base64Content,
+		CommandBase64: CommandBase64Content,
+		Raw:           CommandBase64Content,
 	}
 
 	createRequest := &godo.DropletCreateRequest{

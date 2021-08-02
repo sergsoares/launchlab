@@ -40,8 +40,8 @@ runcmd:
   - sudo chmod +x /usr/local/bin/docker-compose`
 
 type CloudInitConfig struct {
-	Base64 string
-	Raw    string
+	CommandBase64 string
+	Raw           string
 }
 
 func GenerateCloudInit(dc CloudInitConfig) string {
@@ -49,7 +49,7 @@ func GenerateCloudInit(dc CloudInitConfig) string {
 	res := GetConfiguredUser(path)
 
 	result := fmt.Sprint(baseyaml, "\n", runcmd, `
-  - echo `, dc.Base64, ` | base64 -d > /root/docker-compose.yml
+  - echo `, dc.CommandBase64, ` | Base64 -d > /root/docker-compose.yml
   - docker-compose -f /root/docker-compose.yml up -d
 `, res)
 	// log.Debug().Msg(result)
@@ -87,7 +87,7 @@ func GetConfiguredUser(path string) string {
 	return string(content)
 }
 
-func GetFileAsBase64(path string) (string, error) {
+func GetFileAsCommandBase64(path string) (string, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		fmt.Errorf("Failure with path: %s", err)
