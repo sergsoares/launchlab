@@ -83,6 +83,8 @@ func GetConfiguredUser(path string) string {
 		fmt.Print(err)
 	}
 
+	fmt.Println(string(content))
+
 	return string(content)
 }
 
