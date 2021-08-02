@@ -71,7 +71,7 @@ func launchDo(param Params) {
 		panic(err)
 	}
 
-	dc := cloudinit.DockerComposeConfig{
+	dc := cloudinit.CloudInitConfig{
 		Base64: base64Content,
 		Raw:    base64Content,
 	}
