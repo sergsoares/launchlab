@@ -42,16 +42,17 @@ runcmd:
 type CloudInitConfig struct {
 	CommandBase64 string
 	Raw           string
+	Users         string
 }
 
 func GenerateCloudInit(dc CloudInitConfig) string {
-	path := "examples/id_rsa.pub"
-	res := GetConfiguredUser(path)
+	// path := "examples/id_rsa.pub"
+	// res := GetConfiguredUser(path)
 
 	result := fmt.Sprint(baseyaml, "\n", runcmd, `
   - echo `, dc.CommandBase64, ` | Base64 -d > /root/docker-compose.yml
   - docker-compose -f /root/docker-compose.yml up -d
-`, res)
+`, dc.Users)
 	// log.Debug().Msg(result)
 	return result
 }

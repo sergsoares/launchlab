@@ -18,6 +18,7 @@ type Params struct {
 	name              string
 	dryRun            bool
 	dockerComposePath string
+	sshPath           string
 }
 
 func main() {
@@ -26,11 +27,13 @@ func main() {
 	var action string
 	var dryrun bool
 	var dockercompose string
+	var sshpath string
 	flag.StringVar(&typeb, "type", "do", "Cloud that will be used")
 	flag.StringVar(&name, "name", "launchlab", "Name that will be used in Cloud Instance")
 	flag.StringVar(&action, "action", "create", "Name that will be used in Cloud Instance")
 	flag.StringVar(&dockercompose, "file", "cloudinit/examples/elasticsearch.yml", "Docker compose file to be used.")
 	flag.BoolVar(&dryrun, "dry-run", false, "Dry run command to be created.")
+	flag.StringVar(&sshpath, "ssh", baseSshPath, "SSH public path to be used.")
 
 	flag.Parse()
 	log.Debug().Msg("Args parsed")
@@ -39,6 +42,7 @@ func main() {
 		name:              name,
 		dryRun:            dryrun,
 		dockerComposePath: dockercompose,
+		sshPath:           sshpath,
 	}
 
 	switch typeb {
@@ -63,6 +67,8 @@ func loadDoClient(path string) *godo.Client {
 	return godo.NewFromToken(token.AccessToken)
 }
 
+var baseSshPath = os.Getenv("HOME") + "/.ssh/id_rsa.pub"
+
 func launchDo(param Params) {
 	client := loadDoClient(configurationLocation)
 
@@ -71,16 +77,23 @@ func launchDo(param Params) {
 		panic(err)
 	}
 
+	res := cloudinit.GetConfiguredUser(param.sshPath)
+
 	dc := cloudinit.CloudInitConfig{
 		CommandBase64: CommandBase64Content,
 		Raw:           CommandBase64Content,
+		Users:         res,
 	}
+
+	userdata := cloudinit.GenerateCloudInit(dc)
+
+	fmt.Println(userdata)
 
 	createRequest := &godo.DropletCreateRequest{
 		Name:     param.name,
 		Region:   "nyc3",
 		Size:     "s-1vcpu-1gb",
-		UserData: cloudinit.GenerateCloudInit(dc),
+		UserData: userdata,
 		SSHKeys: []godo.DropletCreateSSHKey{
 			{0, "43:7d:f6:a5:2e:15:78:4e:58:8a:f8:1a:ae:47:bf:5f"},
 		},
