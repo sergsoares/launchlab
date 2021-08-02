@@ -39,10 +39,6 @@ runcmd:
   - sudo curl -L "https://github.com/docker/compose/releases/download/1.25.4/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
   - sudo chmod +x /usr/local/bin/docker-compose`
 
-var users string = `users:
-  - name: launchlab 
-    ssh-authorized-keys:`
-
 type DockerComposeConfig struct {
 	Base64 string
 	Raw    string
@@ -83,24 +79,10 @@ func GetConfiguredUser(path string) string {
 		fmt.Print(err)
 	}
 
-	fmt.Println(string(content))
+	// log.Debug().Msg(string(content))
 
 	return string(content)
 }
-
-// func GetConfiguredUser(path string) usersCloudInit {
-// 	f, _ := os.Open(path)
-// 	content, _ := ioutil.ReadAll(f)
-// 	result := fmt.Sprint(`users:
-// 	- name: launchlab
-// 	  ssh-authorized-keys:
-// 	    - `,
-// 		string(content))
-
-// 	// result := fmt.Sprint(users, "\n     - ", string(content))
-
-// 	return result
-// }
 
 func GetFileAsBase64(path string) (string, error) {
 	file, err := os.Open(path)
