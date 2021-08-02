@@ -87,7 +87,7 @@ func launchDo(param Params) {
 
 	userdata := cloudinit.GenerateCloudInit(dc)
 
-	fmt.Println(userdata)
+	log.Debug().Msg(userdata)
 
 	createRequest := &godo.DropletCreateRequest{
 		Name:     param.name,
