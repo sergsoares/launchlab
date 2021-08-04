@@ -12,11 +12,6 @@ import (
 var baseyaml string = `#cloud-config
 groups:
   - docker
-users:
-  - default
-  # the docker service account
-  - name: docker-service
-    groups: docker
 package_upgrade: true
 packages:
   - apt-transport-https
@@ -98,6 +93,8 @@ func GetFileAsCommandBase64(path string) (string, error) {
 	if err != nil {
 		fmt.Errorf("Failure with file content: %s", err)
 	}
+
+	fmt.Println(string(content))
 
 	return base64.StdEncoding.EncodeToString(content), nil
 }
