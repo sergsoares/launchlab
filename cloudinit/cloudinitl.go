@@ -51,6 +51,9 @@ type sshKeys string
 type userCloudInit struct {
 	Name              string    `yaml:"name"`
 	SshAuthorizedKeys []sshKeys `yaml:"ssh-authorized-keys"`
+	Sudo              string    `yaml:"sudo"`
+	Groups            string    `yaml:"groups"`
+	Shell             string    `yaml:"shell"`
 }
 type usersCloudInit struct {
 	Users []userCloudInit `yaml:"users"`
@@ -59,11 +62,15 @@ type usersCloudInit struct {
 func GetConfiguredUser(path string) string {
 	f, _ := os.Open(path)
 	fileContent, _ := ioutil.ReadAll(f)
+
 	users := usersCloudInit{
 		Users: []userCloudInit{
 			{
 				Name:              "launchlab",
 				SshAuthorizedKeys: []sshKeys{sshKeys(fileContent)},
+				Sudo:              "['ALL=(ALL) NOPASSWD:ALL']",
+				Groups:            "sudo",
+				Shell:             "/bin/bash",
 			},
 		},
 	}
@@ -71,8 +78,6 @@ func GetConfiguredUser(path string) string {
 	if err != nil {
 		fmt.Print(err)
 	}
-
-	// log.Debug().Msg(string(content))
 
 	return string(content)
 }

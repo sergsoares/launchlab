@@ -85,8 +85,9 @@ func launchDo(param Params) {
 		Users:         res,
 	}
 
-	userdata := cloudinit.GenerateCloudInit(dc)
+	// fmt.Println(dc)
 
+	userdata := cloudinit.GenerateCloudInit(dc)
 	log.Debug().Msg(userdata)
 
 	createRequest := &godo.DropletCreateRequest{
@@ -94,9 +95,9 @@ func launchDo(param Params) {
 		Region:   "nyc3",
 		Size:     "s-1vcpu-1gb",
 		UserData: userdata,
-		SSHKeys: []godo.DropletCreateSSHKey{
-			{0, "43:7d:f6:a5:2e:15:78:4e:58:8a:f8:1a:ae:47:bf:5f"},
-		},
+		// SSHKeys: []godo.DropletCreateSSHKey{
+		// 	{0, "43:7d:f6:a5:2e:15:78:4e:58:8a:f8:1a:ae:47:bf:5f"},
+		// },
 		Image: godo.DropletCreateImage{
 			Slug: "ubuntu-20-04-x64",
 		},
