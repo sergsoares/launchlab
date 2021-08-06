@@ -105,6 +105,7 @@ func launchDo(param Params) {
 	ctx := context.TODO()
 
 	if param.dryRun {
+		fmt.Println("Dry run Activate")
 		return
 	}
 
