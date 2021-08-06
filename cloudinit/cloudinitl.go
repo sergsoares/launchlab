@@ -20,10 +20,7 @@ packages:
   - gnupg-agent
   - software-properties-common`
 
-var runcmd string = `# power_state:
-#   mode: reboot
-#   message: Restarting after installing docker & docker-compose
-runcmd:
+var runcmd string = `runcmd:
   # install docker following the guide: https://docs.docker.com/install/linux/docker-ce/ubuntu/
   - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
   - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
@@ -41,14 +38,11 @@ type CloudInitConfig struct {
 }
 
 func GenerateCloudInit(dc CloudInitConfig) string {
-	// path := "examples/id_rsa.pub"
-	// res := GetConfiguredUser(path)
-
 	result := fmt.Sprint(baseyaml, "\n", runcmd, `
   - echo `, dc.CommandBase64, ` | Base64 -d > /root/docker-compose.yml
   - docker-compose -f /root/docker-compose.yml up -d
 `, dc.Users)
-	// log.Debug().Msg(result)
+
 	return result
 }
 
@@ -93,8 +87,6 @@ func GetFileAsCommandBase64(path string) (string, error) {
 	if err != nil {
 		fmt.Errorf("Failure with file content: %s", err)
 	}
-
-	fmt.Println(string(content))
 
 	return base64.StdEncoding.EncodeToString(content), nil
 }
