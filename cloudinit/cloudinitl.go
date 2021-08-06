@@ -39,7 +39,7 @@ type CloudInitConfig struct {
 
 func GenerateCloudInit(dc CloudInitConfig) string {
 	result := fmt.Sprint(baseyaml, "\n", runcmd, `
-  - echo `, dc.CommandBase64, ` | Base64 -d > /root/docker-compose.yml
+  - echo `, dc.CommandBase64, ` | base64 -d > /root/docker-compose.yml
   - docker-compose -f /root/docker-compose.yml up -d
 `, dc.Users)
 
