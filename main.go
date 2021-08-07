@@ -2,11 +2,14 @@ package main
 
 import (
 	"context"
+	"crypto/md5"
 	"encoding/base64"
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
+	"strings"
 
 	"github.com/digitalocean/godo"
 	"gopkg.in/yaml.v2"
@@ -69,6 +72,29 @@ func loadDoClient(path string) *godo.Client {
 
 var baseSshPath = os.Getenv("HOME") + "/.ssh/id_rsa.pub"
 
+func getFingerPrintFromKey(key string) string {
+	parts := strings.Fields(string(key))
+	if len(parts) < 2 {
+		log.Fatal("bad key")
+	}
+
+	k, err := base64.StdEncoding.DecodeString(parts[1])
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fp := md5.Sum([]byte(k))
+	result := ""
+	for i, b := range fp {
+		result += fmt.Sprintf("%02x", b)
+		if i < len(fp)-1 {
+			result += fmt.Sprint(":")
+		}
+	}
+
+	return result
+}
+
 func launchDo(param Params) {
 	client := loadDoClient(configurationLocation)
 
@@ -77,6 +103,13 @@ func launchDo(param Params) {
 		fmt.Println("> Invalid path in dockerfile")
 		os.Exit(1)
 	}
+
+	key, err := ioutil.ReadFile(param.sshPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	sshFingerPrint := getFingerPrintFromKey(string(key))
+	fmt.Println("> Fingerprint generated from", param.sshPath, ":", sshFingerPrint)
 
 	createRequest := &godo.DropletCreateRequest{
 		Name:   param.name,
@@ -89,7 +122,7 @@ sudo apt-get install -y docker.io docker-compose
 echo %s | base64 -d > /root/docker-compose.yml
 sudo docker-compose -f /root/docker-compose.yml up -d`, command),
 		SSHKeys: []godo.DropletCreateSSHKey{
-			{0, "43:7d:f6:a5:2e:15:78:4e:58:8a:f8:1a:ae:47:bf:5f"},
+			{0, sshFingerPrint},
 		},
 		Image: godo.DropletCreateImage{
 			Slug: "ubuntu-20-04-x64",
@@ -103,13 +136,13 @@ sudo docker-compose -f /root/docker-compose.yml up -d`, command),
 	}
 	fmt.Println("> Creating Droplet")
 
-	_, _, err = client.Droplets.Create(ctx, createRequest)
+	dropletObj, _, err := client.Droplets.Create(ctx, createRequest)
 	if err != nil {
 		fmt.Print("Error:", err)
 		os.Exit(1)
 	}
 
-	fmt.Println("> Droplet Created")
+	fmt.Println("> Droplet Created:", dropletObj.Name)
 }
 
 func GetFileAsCommandBase64(path string) (string, error) {
