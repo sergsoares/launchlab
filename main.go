@@ -42,16 +42,16 @@ func main() {
 	var region string
 	var size string
 
-	flag.StringVar(&typeb, "type", "do", "Cloud that will be used")
-	flag.StringVar(&name, "name", "launchlab", "Name that will be used in Cloud Instance")
-	flag.StringVar(&action, "action", "create", "Name that will be used in Cloud Instance")
+	flag.StringVar(&typeb, "type", "do", "Cloud that will be used.")
+	flag.StringVar(&name, "name", "launchlab", "Name that will be used in Cloud Instance.")
+	flag.StringVar(&action, "action", "create", "Action that will be made.")
 	flag.StringVar(&dockercompose, "file", "docker-compose.yml", "Docker compose file to be used.")
 	flag.BoolVar(&dryrun, "dry-run", false, "Dry run command to be created.")
 	flag.StringVar(&sshpath, "ssh", baseSshPath, "SSH public path to be used.")
 	flag.StringVar(&image, "image", "ubuntu-20-04-x64", "Imase used as base: Default ubuntu 20.04")
-	flag.StringVar(&userData, "userData", "", "Default command as userdata")
-	flag.StringVar(&region, "region", "nyc3", "Default command as userdata")
-	flag.StringVar(&size, "size", "s-1vcpu-1gb", "Default command as userdata")
+	flag.StringVar(&userData, "userdata", "", "Default command as userdata.")
+	flag.StringVar(&region, "region", "nyc3", "Default region used")
+	flag.StringVar(&size, "size", "s-1vcpu-1gb", "Default instace size")
 
 	flag.Parse()
 
