@@ -2,15 +2,13 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
 
-	"tidy/cloudinit"
-
 	"github.com/digitalocean/godo"
-	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v2"
 )
 
@@ -28,6 +26,7 @@ func main() {
 	var dryrun bool
 	var dockercompose string
 	var sshpath string
+
 	flag.StringVar(&typeb, "type", "do", "Cloud that will be used")
 	flag.StringVar(&name, "name", "launchlab", "Name that will be used in Cloud Instance")
 	flag.StringVar(&action, "action", "create", "Name that will be used in Cloud Instance")
@@ -36,7 +35,6 @@ func main() {
 	flag.StringVar(&sshpath, "ssh", baseSshPath, "SSH public path to be used.")
 
 	flag.Parse()
-	log.Debug().Msg("Args parsed")
 
 	param := Params{
 		name:              name,
@@ -44,9 +42,11 @@ func main() {
 		dockerComposePath: dockercompose,
 		sshPath:           sshpath,
 	}
+	fmt.Println("> Params initialized")
 
 	switch typeb {
 	case "do":
+		fmt.Println("> Type deteted: digital ocean")
 		launchDo(param)
 	default:
 		fmt.Println("Type not supported:", typeb)
@@ -72,32 +72,25 @@ var baseSshPath = os.Getenv("HOME") + "/.ssh/id_rsa.pub"
 func launchDo(param Params) {
 	client := loadDoClient(configurationLocation)
 
-	CommandBase64Content, err := cloudinit.GetFileAsCommandBase64(param.dockerComposePath)
+	command, err := GetFileAsCommandBase64(param.dockerComposePath)
 	if err != nil {
-		panic(err)
+		fmt.Println("> Invalid path in dockerfile")
+		os.Exit(1)
 	}
-
-	res := cloudinit.GetConfiguredUser(param.sshPath)
-
-	dc := cloudinit.CloudInitConfig{
-		CommandBase64: CommandBase64Content,
-		Raw:           CommandBase64Content,
-		Users:         res,
-	}
-
-	// fmt.Println(dc)
-
-	userdata := cloudinit.GenerateCloudInit(dc)
-	log.Debug().Msg(userdata)
 
 	createRequest := &godo.DropletCreateRequest{
-		Name:     param.name,
-		Region:   "nyc3",
-		Size:     "s-1vcpu-1gb",
-		UserData: userdata,
-		// SSHKeys: []godo.DropletCreateSSHKey{
-		// 	{0, "43:7d:f6:a5:2e:15:78:4e:58:8a:f8:1a:ae:47:bf:5f"},
-		// },
+		Name:   param.name,
+		Region: "nyc3",
+		Size:   "s-1vcpu-1gb",
+		UserData: fmt.Sprintf(`#!/bin/bash
+sudo apt-get update
+sudo apt-get install -y docker.io docker-compose
+
+echo %s | base64 -d > /root/docker-compose.yml
+sudo docker-compose -f /root/docker-compose.yml up -d`, command),
+		SSHKeys: []godo.DropletCreateSSHKey{
+			{0, "43:7d:f6:a5:2e:15:78:4e:58:8a:f8:1a:ae:47:bf:5f"},
+		},
 		Image: godo.DropletCreateImage{
 			Slug: "ubuntu-20-04-x64",
 		},
@@ -105,16 +98,30 @@ func launchDo(param Params) {
 	ctx := context.TODO()
 
 	if param.dryRun {
-		fmt.Println("Dry run Activate")
+		fmt.Println("> Dry run Activate")
 		return
 	}
+	fmt.Println("> Creating Droplet")
 
-	newDroplet, _, err := client.Droplets.Create(ctx, createRequest)
+	_, _, err = client.Droplets.Create(ctx, createRequest)
 	if err != nil {
 		fmt.Print("Error:", err)
 		os.Exit(1)
 	}
 
-	fmt.Println("Droplet Created!!!")
-	fmt.Println(newDroplet)
+	fmt.Println("> Droplet Created")
+}
+
+func GetFileAsCommandBase64(path string) (string, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return "", fmt.Errorf("failure with path: %s", err)
+	}
+
+	content, err := ioutil.ReadAll(file)
+	if err != nil {
+		return "", fmt.Errorf("failure with file content: %s", err)
+	}
+
+	return base64.StdEncoding.EncodeToString(content), nil
 }
