@@ -20,7 +20,15 @@ type Params struct {
 	dryRun            bool
 	dockerComposePath string
 	sshPath           string
+	image             string
+	userData          string
+	fingerprint       string
+	region            string
+	size              string
 }
+
+var configurationLocation = os.Getenv("HOME") + "/.config/doctl/config.yaml"
+var baseSshPath = os.Getenv("HOME") + "/.ssh/id_rsa.pub"
 
 func main() {
 	var typeb string
@@ -29,28 +37,60 @@ func main() {
 	var dryrun bool
 	var dockercompose string
 	var sshpath string
+	var image string
+	var userData string
+	var region string
+	var size string
 
 	flag.StringVar(&typeb, "type", "do", "Cloud that will be used")
 	flag.StringVar(&name, "name", "launchlab", "Name that will be used in Cloud Instance")
 	flag.StringVar(&action, "action", "create", "Name that will be used in Cloud Instance")
-	flag.StringVar(&dockercompose, "file", "cloudinit/examples/elasticsearch.yml", "Docker compose file to be used.")
+	flag.StringVar(&dockercompose, "file", "docker-compose.yml", "Docker compose file to be used.")
 	flag.BoolVar(&dryrun, "dry-run", false, "Dry run command to be created.")
 	flag.StringVar(&sshpath, "ssh", baseSshPath, "SSH public path to be used.")
+	flag.StringVar(&image, "image", "ubuntu-20-04-x64", "Imase used as base: Default ubuntu 20.04")
+	flag.StringVar(&userData, "userData", "", "Default command as userdata")
+	flag.StringVar(&region, "region", "nyc3", "Default command as userdata")
+	flag.StringVar(&size, "size", "s-1vcpu-1gb", "Default command as userdata")
 
 	flag.Parse()
 
-	param := Params{
+	key, err := ioutil.ReadFile(sshpath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	sshFingerPrint := getFingerPrintFromKey(string(key))
+	fmt.Println("> Fingerprint generated from", sshpath, ":", sshFingerPrint)
+
+	if userData == "" {
+		fmt.Println("> Using default userdata")
+		command, err := GetFileAsCommandBase64(dockercompose)
+		if err != nil {
+			fmt.Println("> Invalid path in dockerfile")
+			os.Exit(1)
+		}
+
+		userData = getUserdataWithDockerCompose(command)
+	}
+
+	params := Params{
 		name:              name,
 		dryRun:            dryrun,
 		dockerComposePath: dockercompose,
 		sshPath:           sshpath,
+		image:             image,
+		userData:          userData,
+		fingerprint:       sshFingerPrint,
+		region:            region,
+		size:              size,
 	}
+
 	fmt.Println("> Params initialized")
 
 	switch typeb {
 	case "do":
 		fmt.Println("> Type deteted: digital ocean")
-		launchDo(param)
+		launchDo(params)
 	default:
 		fmt.Println("Type not supported:", typeb)
 	}
@@ -60,8 +100,6 @@ type DigitalOceanToken struct {
 	AccessToken string `yaml:"access-token"`
 }
 
-var configurationLocation = os.Getenv("HOME") + "/.config/doctl/config.yaml"
-
 func loadDoClient(path string) *godo.Client {
 	token := DigitalOceanToken{}
 	f, _ := os.Open(path)
@@ -69,8 +107,6 @@ func loadDoClient(path string) *godo.Client {
 	yaml.Unmarshal(content, &token)
 	return godo.NewFromToken(token.AccessToken)
 }
-
-var baseSshPath = os.Getenv("HOME") + "/.ssh/id_rsa.pub"
 
 func getFingerPrintFromKey(key string) string {
 	parts := strings.Fields(string(key))
@@ -95,37 +131,28 @@ func getFingerPrintFromKey(key string) string {
 	return result
 }
 
-func launchDo(param Params) {
-	client := loadDoClient(configurationLocation)
-
-	command, err := GetFileAsCommandBase64(param.dockerComposePath)
-	if err != nil {
-		fmt.Println("> Invalid path in dockerfile")
-		os.Exit(1)
-	}
-
-	key, err := ioutil.ReadFile(param.sshPath)
-	if err != nil {
-		log.Fatal(err)
-	}
-	sshFingerPrint := getFingerPrintFromKey(string(key))
-	fmt.Println("> Fingerprint generated from", param.sshPath, ":", sshFingerPrint)
-
-	createRequest := &godo.DropletCreateRequest{
-		Name:   param.name,
-		Region: "nyc3",
-		Size:   "s-1vcpu-1gb",
-		UserData: fmt.Sprintf(`#!/bin/bash
+func getUserdataWithDockerCompose(base64compose string) string {
+	return fmt.Sprintf(`#!/bin/bash
 sudo apt-get update
 sudo apt-get install -y docker.io docker-compose
 
 echo %s | base64 -d > /root/docker-compose.yml
-sudo docker-compose -f /root/docker-compose.yml up -d`, command),
+sudo docker-compose -f /root/docker-compose.yml up -d`, base64compose)
+}
+
+func launchDo(param Params) {
+	client := loadDoClient(configurationLocation)
+
+	createRequest := &godo.DropletCreateRequest{
+		Name:     param.name,
+		Region:   param.region,
+		Size:     param.size,
+		UserData: param.userData,
 		SSHKeys: []godo.DropletCreateSSHKey{
-			{0, sshFingerPrint},
+			{0, param.fingerprint},
 		},
 		Image: godo.DropletCreateImage{
-			Slug: "ubuntu-20-04-x64",
+			Slug: param.image,
 		},
 	}
 	ctx := context.TODO()
