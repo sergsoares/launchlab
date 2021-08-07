@@ -10,10 +10,13 @@ When you can use launchlab:
 
 ## Install
 
-Get last release in [Launchlab releases](https://github.com/sergsoares/launchlab/releases/)
+1. [Installing doctl](https://github.com/digitalocean/doctl#installing-doctl)
+1. [Using `doctl auth init` to configure default credentails](https://ldocs.digitalocean.com/reference/doctl/reference/auth/init/) 
+1. Get last release in [Launchlab releases](https://github.com/sergsoares/launchlab/releases/)
 
-## Base parameters
+## Start playing with launchlab 
 
-```
-launchlab -name launchlab 
+```bash
+# Minimal command using digital ocean config.
+launchlab -file docker-compose.yml
 ```
